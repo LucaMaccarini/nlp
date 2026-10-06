@@ -20,10 +20,11 @@ cd /d "%~dp0.."
 echo Cartella di lavoro: %CD%
 echo.
 
-rem Default: NO. Solo la risposta S attiva la cancellazione.
+rem Default: NO. Solo la risposta S + Invio attiva la cancellazione.
 set "RIGENERA=0"
-choice /c SN /n /m "Cancellare TUTTI i PDF in questa cartella e rigenerarli tutti? [S/N] "
-if %errorlevel%==1 set "RIGENERA=1"
+set "RISP="
+set /p "RISP=Cancellare TUTTI i PDF in questa cartella e rigenerarli tutti? [S/N] + Invio: "
+if /i "%RISP%"=="S" set "RIGENERA=1"
 echo.
 
 if "%RIGENERA%"=="1" (

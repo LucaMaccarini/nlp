@@ -16,6 +16,7 @@ _XCOLOR_NAMES = {"black", "blue", "brown", "cyan", "darkgray", "gray", "green", 
                  "lime", "magenta", "olive", "orange", "pink", "purple", "red", "teal",
                  "violet", "white", "yellow"}
 
+TABLE_FONT = r"\ttfamily\small"
 
 def _tex_escape(s):
     return _TEX_RE.sub(lambda m: _TEX[m.group()], str(s))
@@ -76,7 +77,11 @@ def styler_to_latex(styler):
     for lvl in range(s.data.columns.nlevels):
         for j in range(n_cols):
             s._display_funcs_columns[(lvl, j)] = _wrap(s._display_funcs_columns[(lvl, j)])
-    return s.to_latex(hrules=True, multirow_align="naive")
+
+    tex = s.to_latex(hrules=True, multirow_align="naive")
+    if TABLE_FONT:
+        tex = "{" + TABLE_FONT + "\n" + tex.rstrip() + "\n}\n"
+    return tex
 
 
 def styler_to_plain(styler, p, cycle):
