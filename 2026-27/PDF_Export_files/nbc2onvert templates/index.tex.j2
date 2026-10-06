@@ -1,0 +1,25 @@
+
+((=- Default to the notebook output style -=))
+((*- if not cell_style is defined -*))
+    ((* set cell_style = 'style_jupyter.tex.j2' *))
+((*- endif -*))
+
+((=- Inherit from the specified cell style. -=))
+((* extends cell_style *))
+
+((* set charlim = 200 *))
+
+%===============================================================================
+% Latex Article
+%===============================================================================
+
+((*- block docclass -*))
+
+	\documentclass[a4paper,landscape, 50pt]{article}
+
+((*- endblock docclass -*))
+
+
+((*- block margins -*))
+    \geometry{verbose,tmargin=0.2in,bmargin=0.2in,lmargin=0.3in,rmargin=0.3in}
+((*- endblock margins -*))
