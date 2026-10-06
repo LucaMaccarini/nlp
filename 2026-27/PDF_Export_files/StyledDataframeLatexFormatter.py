@@ -17,6 +17,12 @@ _XCOLOR_NAMES = {"black", "blue", "brown", "cyan", "darkgray", "gray", "green", 
                  "violet", "white", "yellow"}
 
 TABLE_FONT = r"\ttfamily\small"
+LINE_WIDTH = 150                  # None -> usa pd.get_option("display.width"); modificalo per adattarlo alla pagina
+COL_SEP = 3                       # spazio (in caratteri) tra colonne: tiene conto di \tabcolsep
+WRAP_MARK = r"\textbackslash{}"   # segno "continua nel blocco successivo"; None per disattivarlo
+
+
+# ---------------------------------------------------------------- escape e colori
 
 def _tex_escape(s):
     return _TEX_RE.sub(lambda m: _TEX[m.group()], str(s))
@@ -41,7 +47,8 @@ def _color_spec(c):
 
 
 def _paint(f, css):
-    """Avvolge la funzione di formato f applicando sfondo, colore del testo e grassetto."""
+    """Avvolge la funzione di formato f applicando sfondo, colore del testo e grassetto.
+    (Al momento non usata: gli stili vengono ignorati in _render.)"""
     d = {str(k).strip().lower(): str(v).strip() for k, v in css}
     bg = _color_spec(d.get("background-color"))
     fg = _color_spec(d.get("color"))
@@ -62,8 +69,74 @@ def _paint(f, css):
     return g
 
 
-def styler_to_latex(styler):
-    s = copy.deepcopy(styler)
+# ---------------------------------------------------------------- larghezze e blocchi
+
+def _col_widths(s):
+    """Larghezza (in caratteri) dell'indice e di ogni colonna, come verrebbe stampata."""
+    data = s.data
+    n_rows, n_cols = data.shape
+
+    # indice
+    idx_w = 0
+    for lvl in range(data.index.nlevels):
+        level_values = data.index.get_level_values(lvl)
+        w = max(
+            (len(str(s._display_funcs_index[(i, lvl)](level_values[i])))
+             for i in range(n_rows)),
+            default=0,
+        )
+        idx_w += w + (1 if lvl else 0)
+    idx_w = max(idx_w, max((len(str(n)) for n in data.index.names if n is not None), default=0))
+
+    # colonne
+    widths = []
+    for j in range(n_cols):
+        label = data.columns[j]
+        labels = label if isinstance(label, tuple) else (label,)
+        w = max(len(str(x)) for x in labels)
+        for i in range(n_rows):
+            w = max(w, len(str(s._display_funcs[(i, j)](data.iat[i, j]))))
+        widths.append(w)
+    return idx_w, widths
+
+
+def _chunks(idx_w, widths, line_width):
+    """Raggruppa le colonne in blocchi che stanno in line_width (come fa pandas)."""
+    out, cur, used = [], [], idx_w
+    for j, w in enumerate(widths):
+        need = w + COL_SEP
+        if cur and used + need > line_width:
+            out.append(cur)
+            cur, used = [], idx_w
+        cur.append(j)
+        used += need
+    if cur:
+        out.append(cur)
+    return out
+
+
+# ---------------------------------------------------------------- rendering
+
+def _add_wrap_mark(tex):
+    """Aggiunge una colonna finale con il segno di continuazione a ogni riga della tabella."""
+    tex = re.sub(r"(\\begin\{tabular\}\{[^}]*)\}", r"\1l}", tex, count=1)
+    out = []
+    for line in tex.splitlines():
+        if line.rstrip().endswith(r"\\"):
+            line = line.rstrip()[:-2].rstrip() + f" & {WRAP_MARK} \\\\"
+        out.append(line)
+    return "\n".join(out)
+
+
+def _render(s, keep=None, cont=False):
+    """Una singola tabella LaTeX; keep = posizioni delle colonne da mostrare (None = tutte).
+    cont=True aggiunge il segno di continuazione a destra."""
+    s = copy.deepcopy(s)
+    if keep is not None:
+        keep = set(keep)
+        hidden = [c for j, c in enumerate(s.data.columns) if j not in keep]
+        if hidden:
+            s.hide(subset=hidden, axis=1)
     s._compute()  # applica gli stili "pigri" (gradient, apply, map)
     s.ctx.clear(); s.ctx_index.clear(); s.ctx_columns.clear(); s._todo.clear()  # ignora i colori
 
@@ -78,9 +151,29 @@ def styler_to_latex(styler):
         for j in range(n_cols):
             s._display_funcs_columns[(lvl, j)] = _wrap(s._display_funcs_columns[(lvl, j)])
 
-    tex = s.to_latex(hrules=True, multirow_align="naive")
+    tex = s.to_latex(hrules=True, multirow_align="naive").rstrip()
+    if cont and WRAP_MARK:
+        tex = _add_wrap_mark(tex)
+    return tex
+
+
+def styler_to_latex(styler):
+    line_width = LINE_WIDTH or pd.get_option("display.width") or 80
+    base = copy.deepcopy(styler)
+    base._compute()
+    idx_w, widths = _col_widths(base)
+    groups = _chunks(idx_w, widths, line_width)
+
+    if len(groups) <= 1:
+        tex = _render(styler)
+    else:
+        last = len(groups) - 1
+        tex = "\n\\par\\medskip\n".join(
+            _render(styler, keep=g, cont=(k < last)) for k, g in enumerate(groups)
+        )
+
     if TABLE_FONT:
-        tex = "{" + TABLE_FONT + "\n" + tex.rstrip() + "\n}\n"
+        tex = "{" + TABLE_FONT + "\n" + tex + "\n}\n"
     return tex
 
 
