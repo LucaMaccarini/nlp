@@ -35,8 +35,8 @@ Once a neural network is classifying text, we can look inside it: hidden layers 
 
 **Lessons:**
 
-6. **What's inside the network: hidden layers as learned dense representations**
-7. **Beyond orthogonal tokens: Word2Vec and word embeddings**
+6. **What's inside the network: hidden layers as learned dense representations** [Notebook](./L0.4-hidden-representations.ipynb)
+7. **Beyond orthogonal tokens: Word2Vec and word embeddings** [Notebook](./L0.5-word2vec.ipynb)
 
 ---
 
