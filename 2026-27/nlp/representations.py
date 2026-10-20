@@ -25,7 +25,8 @@ def train_classifier(X_train, y_train, X_validation, y_validation, units: int, s
     The parameters of the epoch with the lowest validation loss are kept."""
     torch.manual_seed(seed)
     x_train, x_validation = _tensor(X_train), _tensor(X_validation)
-    t_train, t_validation = torch.as_tensor(y_train), torch.as_tensor(y_validation)
+    t_train = torch.as_tensor(np.asarray(y_train), dtype=torch.long)
+    t_validation = torch.as_tensor(np.asarray(y_validation), dtype=torch.long)
     n_classes = int(t_train.max()) + 1
     model = nn.Sequential(nn.Linear(x_train.shape[1], units), nn.ReLU(), nn.Linear(units, n_classes))
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)

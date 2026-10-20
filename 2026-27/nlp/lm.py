@@ -8,7 +8,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-RECIPES = "/Users/Flint/Data/recipes/foodcom/subsets/recipes_cuisine_tipo_10k.json"
+
+RECIPES = r'C:\Users\luca.maccarini\Desktop\luca\NLP\nlp\recipes_cuisine_tipo_10k.json'
 PLOTS = "/Users/Flint/Data/movies/subsets/plots_english_10k.json"
 
 UNK, START, END = "<unk>", "<s>", "</s>"
@@ -23,7 +24,7 @@ def sentences_of(text: str):
 
 def load_recipes():
     """The instructions of the recipes of the 10k subset: a list of documents, each one a list of sentences."""
-    with open(RECIPES) as f:
+    with open(RECIPES, encoding="utf-8") as f:
         return [sentences_of(r["instructions"]) for r in json.load(f)]
 
 
